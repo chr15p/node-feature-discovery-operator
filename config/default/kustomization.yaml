@@ -24,3 +24,8 @@ resources:
 - ../crd
 - ../rbac
 - ../manager
+- ../worker
+- ../master
+- ../gc
+- ../prune
+- ../topologyupdater
