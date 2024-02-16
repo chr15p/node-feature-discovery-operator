@@ -1,13 +1,13 @@
 apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
+kind: ClusterRoleBinding
 metadata:
-  name: nfd-worker
+  name: prune
 roleRef:
   apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: nfd-worker
+  kind: ClusterRole
+  name: prune
 subjects:
 - kind: ServiceAccount
-  name: nfd-worker
+  name: nfd-prune
   namespace: node-feature-discovery-operator
 

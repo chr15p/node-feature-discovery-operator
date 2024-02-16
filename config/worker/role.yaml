@@ -1,7 +1,7 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: nfd-worker
+  name: worker
 rules:
 - apiGroups:
   - policy
@@ -11,4 +11,11 @@ rules:
   - use
   resourceNames:
   - nfd-worker
-
+- apiGroups:
+  - nfd.k8s-sigs.io
+  resources:
+  - nodefeatures
+  verbs:
+  - get
+  - create
+  - update
