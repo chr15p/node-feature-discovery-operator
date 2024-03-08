@@ -34,6 +34,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	nfdv1 "sigs.k8s.io/node-feature-discovery-operator/api/v1"
+	"sigs.k8s.io/node-feature-discovery-operator/internal/worker"
 	"sigs.k8s.io/node-feature-discovery-operator/internal/deployment"
 )
 
@@ -42,8 +43,8 @@ type nodeFeatureDiscoveryReconciler struct {
 	helper nodeFeatureDiscoveryHelperAPI
 }
 
-func NewNodeFeatureDiscoveryReconciler(client client.Client, deploymentAPI deployment.DeploymentAPI, scheme *runtime.Scheme) nodeFeatureDiscoveryReconciler {
-	helper := newNodeFeatureDiscoveryHelperAPI(client, deploymentAPI, scheme)
+func NewNodeFeatureDiscoveryReconciler(client client.Client, deploymentAPI deployment.DeploymentAPI, workerAPI worker.WorkerAPI, scheme *runtime.Scheme) nodeFeatureDiscoveryReconciler {
+	helper := newNodeFeatureDiscoveryHelperAPI(client, deploymentAPI, workerAPI, scheme)
 	return nodeFeatureDiscoveryReconciler{
 		helper: helper,
 	}
@@ -138,13 +139,16 @@ type nodeFeatureDiscoveryHelperAPI interface {
 type nodeFeatureDiscoveryHelper struct {
 	client        client.Client
 	deploymentAPI deployment.DeploymentAPI
+	workerAPI     worker.WorkerAPI
 	scheme        *runtime.Scheme
 }
 
-func newNodeFeatureDiscoveryHelperAPI(client client.Client, deploymentAPI deployment.DeploymentAPI, scheme *runtime.Scheme) nodeFeatureDiscoveryHelperAPI {
+func newNodeFeatureDiscoveryHelperAPI(client client.Client, deploymentAPI deployment.DeploymentAPI,
+	workerAPI worker.WorkerAPI, scheme *runtime.Scheme) nodeFeatureDiscoveryHelperAPI {
 	return &nodeFeatureDiscoveryHelper{
 		client:        client,
 		deploymentAPI: deploymentAPI,
+		workerAPI:     workerAPI,
 		scheme:        scheme,
 	}
 }
@@ -177,6 +181,34 @@ func (nfdh *nodeFeatureDiscoveryHelper) handleMaster(ctx context.Context, nfdIns
 }
 
 func (nfdh *nodeFeatureDiscoveryHelper) handleWorker(ctx context.Context, nfdInstance *nfdv1.NodeFeatureDiscovery) error {
+	logger := ctrl.LoggerFrom(ctx)
+
+	workerCM := corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{Name: "nfd-worker", Namespace: nfdInstance.Namespace},
+	}
+	cmRes, err := controllerutil.CreateOrPatch(ctx, nfdh.client, &workerCM, func() error {
+		return nfdh.workerAPI.SetWorkerConfigMapAsDesired(ctx, nfdInstance, &workerCM)
+	})
+	if err != nil {
+		return fmt.Errorf("failed to reconcile worker configmap %s/%s: %w", nfdInstance.Namespace, nfdInstance.Name, err)
+	}
+    logger.Info("reconciled worker DaemonSet", "namespace", nfdInstance.Namespace, "name", nfdInstance.Name, "result", cmRes)
+    //the configmap now exists
+
+	workerDS := appsv1.DaemonSet{
+		ObjectMeta: metav1.ObjectMeta{Name: "nfd-worker", Namespace: nfdInstance.Namespace},
+	}
+	opRes, err := controllerutil.CreateOrPatch(ctx, nfdh.client, &workerDS, func() error {
+		return nfdh.workerAPI.SetWorkerDaemonsetAsDesired(ctx, nfdInstance, &workerDS)
+	})
+	if err != nil {
+		return fmt.Errorf("failed to reconcile worker DaemonSet %s/%s: %w", nfdInstance.Namespace, nfdInstance.Name, err)
+	}
+    // the worker DS now exists
+
+
+    logger.Info("reconciled worker DaemonSet", "namespace", nfdInstance.Namespace, "name", nfdInstance.Name, "result", opRes)
+
 	return nil
 }
 

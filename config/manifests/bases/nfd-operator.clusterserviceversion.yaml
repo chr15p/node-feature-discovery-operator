@@ -97,7 +97,7 @@ spec:
     - description: |
         NodeFeatureRule resource specifies a configuration for feature-based customization of node objects, such as node labeling.
       kind: NodeFeatureRule
-      name: nodefeaturerules.nfd.kubernetes.io
+      name: nodefeaturerules.nfd.k8s-sigs.io
       version: v1alpha1
     - description: |
         NodeResourceTopology resource describes node resources and their topology.
