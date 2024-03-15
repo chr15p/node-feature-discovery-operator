@@ -451,18 +451,6 @@ func Deployment(n NFD) (ResourceStatus, error) {
 	}
 
 	var args []string
-	port := defaultServicePort
-
-	// If the operand service port has already been defined,
-	// then set "port" to the defined port. Otherwise, it is
-	// ok to just use the defaultServicePort value
-	if n.ins.Spec.Operand.ServicePort != 0 {
-		port = n.ins.Spec.Operand.ServicePort
-	}
-
-	// Now that the port has been determined, append it to
-	// the list of args
-	args = append(args, fmt.Sprintf("--port=%d", port))
 
 	// Check if running as instance. If not, then it is
 	// expected that n.ins.Spec.Instance will return ""

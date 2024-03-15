@@ -1,12 +1,13 @@
 apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
+kind: RoleBinding
 metadata:
-  name: nfd-gc
+  name: worker
 roleRef:
   apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: nfd-gc
+  kind: Role
+  name: worker
 subjects:
 - kind: ServiceAccount
-  name: nfd-gc
-  namespace: default 
+  name: nfd-worker
+  namespace: node-feature-discovery-operator
+
